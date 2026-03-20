@@ -1,22 +1,39 @@
 import pandas as pd
-"Complete thes functions or write your own to perform the following tasks"
 
 def calculate_profit_by_order(orders_df):
     "Calculate profit for each order in the DataFrame"
 
-    return orders_df
+    df = orders_df.copy()
+
+    discount_factor = (1 - df["Discount Percent"] / 100)
+
+    df["Profit"] = (df["List Price"] * discount_factor - df["cost price"]) * df["Quantity"]
+
+    return df
 
 def calculate_most_profitable_region(orders_df):
-    "Calculate the most profitable region and its profit"
-   
-    return
+    
+    df = calculate_profit_by_order(orders_df.copy())
+
+    profits = (df.groupby("Region", as_index= False)["Profit"]
+               .sum())
+    
+    return profits.loc[profits["Profit"].idxmax()]
 
 def find_most_common_ship_method(orders_df):
     "Find the most common shipping method for each Category"
-    
-    return 
+    counts = (orders_df.groupby(["Category", "Ship Mode"], as_index= False)
+              .size()
+              .reset_index(name="count"))
 
-def find_number_of_order_per_category( orders_df):
+    return counts.loc[counts.groupby('Category')['size'].idxmax()]
+
+def find_number_of_order_per_category(orders_df):
     "find the number of orders for each Category and Sub Category"
 
-    return
+    return (
+        orders_df
+        .groupby(["Category", "Sub Category"])
+        .size()
+        .reset_index(name="order_count")
+    )
