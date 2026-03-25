@@ -1,45 +1,59 @@
 resource "aws_s3_bucket" "input_s3" {
   bucket = "${local.app_name}-input-bucket"
-
   tags = merge({
-    Name        = "${local.app_name}-input-bucket"
-    Environment = var.env
-  }, local.default_tags)
-
+        Name        = "${local.app_name}-input-bucket"
+        Environment = "${var.env}"
+        Owner       = "waleed"
+    }, local.default_tags
+  )
   force_destroy = true
 }
 
 resource "aws_s3_bucket" "output_s3" {
   bucket = "${local.app_name}-output-bucket"
-
   tags = merge({
-    Name        = "${local.app_name}-output-bucket"
-    Environment = var.env
-  }, local.default_tags)
-
+        Name        = "${local.app_name}-output-bucket"
+        Environment = "${var.env}"
+        Owner       = "waleed"
+    }, local.default_tags
+  )
   force_destroy = true
 }
 
-data "aws_lambda_function" "existing_lambda" {
-  function_name = "${local.app_name}-file-processor"
+module "lambda_function" {
+  source                  = "../modules/lambda"
+  lambda_name             = "${local.app_name}-file-processor"
+  role_name               = "${local.app_name}-file-processor-role"
+  log_retention_in_days   = 14
+  image_uri               = "${module.ecr_repo.repository_url}:latest"
+  timeout                 = 15
+  memory_size             = 256
+  environment_variables   = {
+    EXAMPLE_VAR = "value"
+  }
+  default_tags = merge(local.default_tags, {Owner = "waleed"})
+
 }
 
-resource "aws_lambda_permission" "allow_bucket" {
-  statement_id  = "AllowExecutionFromS3Bucket"
-  action        = "lambda:InvokeFunction"
-  function_name = data.aws_lambda_function.existing_lambda.function_name
-  principal     = "s3.amazonaws.com"
-  source_arn    = aws_s3_bucket.input_s3.arn
+module "ecr_repo" {
+  source    = "../modules/ecr-repo"
+  repo_name = "${local.app_name}-ecr"
+  default_tags = merge(local.default_tags, {Owner = "waleed"})
 }
 
 resource "aws_s3_bucket_notification" "s3_notification" {
   bucket = aws_s3_bucket.input_s3.id
-
   lambda_function {
-    lambda_function_arn = data.aws_lambda_function.existing_lambda.arn
+    lambda_function_arn = module.lambda_function.lambda_arn
     events              = ["s3:ObjectCreated:*"]
     filter_suffix       = ".csv"
   }
+}
 
-  depends_on = [aws_lambda_permission.allow_bucket]
+resource "aws_lambda_permission" "allow_s3" {
+  statement_id  = "AllowS3Invoke"
+  action        = "lambda:InvokeFunction"
+  function_name = "${local.app_name}-file-processor"
+  principal     = "s3.amazonaws.com"
+  source_arn    = "arn:aws:s3:::nmd-assignment-waleed-input-bucket"
 }

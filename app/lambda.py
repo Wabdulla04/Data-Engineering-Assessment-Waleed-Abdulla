@@ -16,7 +16,7 @@ Modify this lambda function to perform the following questions
 """
 
 s3 = boto3.client("s3")
-output_bucket = "nmd-assignment-waleed-abdulla-output-bucket"
+output_bucket = "nmd-assignment-waleed-output-bucket"
 
 # Initialize the logger per https://docs.aws.amazon.com/lambda/latest/dg/python-handler.html
 logger = logging.getLogger()
@@ -34,9 +34,6 @@ def lambda_handler(event, context):
                 encoding='utf-8'
                 )
             
-            #Csv file name for clarity
-            baseName = key.split("/")[-1].replace(".csv", "")
-
             logger.info(f"Processing file: {bucket}/{key}")
 
             #Get file from S3 input bucket
@@ -48,7 +45,7 @@ def lambda_handler(event, context):
             logger.info(f"CSV loading success")
 
             #Analytics functions
-            orderProfits = orders_analytics.calculate_profit_by_order(data)[['Order Id', 'Profit']]
+            orderProfits = orders_analytics.calculate_profit_by_order(data)
             mostProfitableRegion = orders_analytics.calculate_most_profitable_region(data)
             mostCommonShipMethod = orders_analytics.find_most_common_ship_method(data)
             ordersPerCategory = orders_analytics.find_number_of_order_per_category(data)
@@ -65,7 +62,7 @@ def lambda_handler(event, context):
                 csvBuffer = StringIO()
                 file.to_csv(csvBuffer, index=False)
 
-                outputKey = f"reports/{name}/{baseName}.csv"
+                outputKey = f"{name}.csv"
 
                 s3.put_object(
                     Bucket = output_bucket,
@@ -84,5 +81,3 @@ def lambda_handler(event, context):
     except Exception as e:
         logger.error(f"Error processing file: {str(e)}")
         raise e
-
-
