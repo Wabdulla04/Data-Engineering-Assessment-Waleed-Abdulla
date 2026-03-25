@@ -8,7 +8,7 @@ data "aws_caller_identity" "current" {}
 terraform {
   backend "s3" {
     bucket         = "nmd-training-tf-states-888577066340"
-    key            = "assignment/waleed-abdulla-nmd-assignment.tfstate"
+    key            = "assignment/waleed-nmd-assignment.tfstate"
     region         = "us-west-2"
     dynamodb_table = "nmd-training-tf-state-lock-table"    
     encrypt        = true                   # Encrypts the state file at rest
