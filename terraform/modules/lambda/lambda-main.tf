@@ -50,6 +50,7 @@ resource "aws_lambda_function" "lambda_function" {
   tags = var.default_tags
 }
 
+#Provides Lambda IAM permissions to ONLY get objects and put objects into S3 buckets
 resource "aws_iam_role_policy" "lambda_s3_policy" {
   name = "${var.lambda_name}-s3-policy"
   role = aws_iam_role.lambda_exec_role.id
@@ -62,23 +63,13 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
         Action = [
           "s3:GetObject",
           "s3:PutObject",
-          "s3:DeleteObject"
         ]
         Resource = [
           "arn:aws:s3:::nmd-assignment-waleed-input-bucket/*",
           "arn:aws:s3:::nmd-assignment-waleed-output-bucket/*"
         ]
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "s3:ListBucket"
-        ]
-        Resource = [
-          "arn:aws:s3:::nmd-assignment-waleed-input-bucket",
-          "arn:aws:s3:::nmd-assignment-waleed-output-bucket"
-        ]
       }
     ]
-  })
+  }
+  )
 }

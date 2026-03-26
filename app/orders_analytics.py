@@ -1,21 +1,19 @@
-import pandas as pd
+def _add_profit_column(orders_df):
+    "Add profit column to dataframe"
+    df = orders_df.copy()
+    discount_factor = (1 - df["Discount Percent"] / 100)
+    df["Profit"] = (
+        (df["List Price"] * discount_factor - df["cost price"]) * df["Quantity"]
+    )
+    return df
 
 def calculate_profit_by_order(orders_df):
     "Calculate profit for each order in the DataFrame"
-    df = orders_df.copy()
-    discount_factor = (1 - df["Discount Percent"] / 100)
-    df["Profit"] = (
-        (df["List Price"] * discount_factor - df["cost price"]) * df["Quantity"]
-    )
-    return df[["Order Id", "Profit"]]
+    return _add_profit_column(orders_df)[["Order Id", "Profit"]]
 
 def calculate_most_profitable_region(orders_df):
     "Calculate the most profitable region and its profit"
-    df = orders_df.copy()
-    discount_factor = (1 - df["Discount Percent"] / 100)
-    df["Profit"] = (
-        (df["List Price"] * discount_factor - df["cost price"]) * df["Quantity"]
-    )
+    df = _add_profit_column(orders_df)
     profits = df.groupby("Region", as_index=False)["Profit"].sum()
     return profits.loc[[profits["Profit"].idxmax()]]
 

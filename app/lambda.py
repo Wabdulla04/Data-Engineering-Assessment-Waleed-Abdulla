@@ -7,15 +7,10 @@ import logging
 
 import orders_analytics
 
-"""
-Modify this lambda function to perform the following questions
-
-1. Find the most profitable Region, and its profit
-2. What shipping method is most common for each Category
-3. Output a glue table containing the number of orders for each Category and Sub Category
-"""
-
+#Represents an s3 instance
 s3 = boto3.client("s3")
+
+#Hardcoded output bucket name
 output_bucket = "nmd-assignment-waleed-output-bucket"
 
 # Initialize the logger per https://docs.aws.amazon.com/lambda/latest/dg/python-handler.html
@@ -31,20 +26,20 @@ def lambda_handler(event, context):
             bucket = record['s3']['bucket']['name']
             key = urllib.parse.unquote_plus(
                 record['s3']['object']['key'],
-                encoding='utf-8'
                 )
             
             logger.info(f"Processing file: {bucket}/{key}")
 
-            #Get file from S3 input bucket
+            #Get file from the S3 input bucket
             obj = s3.get_object(Bucket=bucket, Key=key)
             csv_data = obj['Body'].read().decode('utf-8')
 
+            #Read the csv with pandas and StringIO (string -> file)
             data = pd.read_csv(StringIO(csv_data))
 
             logger.info(f"CSV loading success")
 
-            #Analytics functions
+            #Analytical Calls
             orderProfits = orders_analytics.calculate_profit_by_order(data)
             mostProfitableRegion = orders_analytics.calculate_most_profitable_region(data)
             mostCommonShipMethod = orders_analytics.find_most_common_ship_method(data)
@@ -59,19 +54,14 @@ def lambda_handler(event, context):
             
             #Upload Analysis
             for name, file in analytics.items():
-                csvBuffer = StringIO()
-                file.to_csv(csvBuffer, index=False)
-
-                outputKey = f"{name}.csv"
-
                 s3.put_object(
                     Bucket = output_bucket,
-                    Key = outputKey,
-                    Body = csvBuffer.getvalue(),
+                    Key = f"{name}.csv",
+                    Body = file.to_csv(index=False),
                     ContentType = "text/csv"
                 )
 
-                logger.info(f"Uploaded {outputKey}")
+                logger.info(f"Uploaded {name}.csv")
         
         return {
             "statusCode": 200,

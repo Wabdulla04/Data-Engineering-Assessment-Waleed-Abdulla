@@ -1,3 +1,4 @@
+#Input bucket that receives the CSV file
 resource "aws_s3_bucket" "input_s3" {
   bucket = "${local.app_name}-input-bucket"
   tags = merge({
@@ -9,6 +10,7 @@ resource "aws_s3_bucket" "input_s3" {
   force_destroy = true
 }
 
+#Output bucket that holds the analytical CSV files
 resource "aws_s3_bucket" "output_s3" {
   bucket = "${local.app_name}-output-bucket"
   tags = merge({
@@ -20,6 +22,7 @@ resource "aws_s3_bucket" "output_s3" {
   force_destroy = true
 }
 
+#Connects main.tf and passes variables to the Lambda module
 module "lambda_function" {
   source                  = "../modules/lambda"
   lambda_name             = "${local.app_name}-file-processor"
@@ -35,12 +38,14 @@ module "lambda_function" {
 
 }
 
+#Connects main.tf and passes variables to the ECR module
 module "ecr_repo" {
   source    = "../modules/ecr-repo"
   repo_name = "${local.app_name}-ecr"
   default_tags = merge(local.default_tags, {Owner = "waleed"})
 }
 
+#Manages the input bucket's notification to trigger on the creation of a CSV file
 resource "aws_s3_bucket_notification" "s3_notification" {
   bucket = aws_s3_bucket.input_s3.id
   lambda_function {
@@ -50,6 +55,7 @@ resource "aws_s3_bucket_notification" "s3_notification" {
   }
 }
 
+#Provides the input bucket permission to trigger the lambda function
 resource "aws_lambda_permission" "allow_s3" {
   statement_id  = "AllowS3Invoke"
   action        = "lambda:InvokeFunction"
